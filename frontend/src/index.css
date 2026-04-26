@@ -231,6 +231,39 @@ html, body, #root {
 
 .btn--danger:hover { opacity: 0.85; }
 
+/* ─── Tool Selector ──────────────────────────────────────────────────────── */
+.tool-selector {
+  display: flex;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 2px;
+  gap: 2px;
+}
+
+.tool-btn {
+  background: transparent;
+  border: none;
+  border-radius: calc(var(--radius) - 2px);
+  padding: 6px 12px;
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tool-btn:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.tool-btn--active {
+  background: var(--surface);
+  color: var(--accent-h);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
 /* ─── Drawing Canvas ─────────────────────────────────────────────────────── */
 .drawing-canvas {
   flex: 1;

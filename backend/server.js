@@ -41,7 +41,7 @@ wss.on('connection', (ws, req) => {
     }
 
     // Accept only known event types
-    if (data.type === 'draw' || data.type === 'clear') {
+    if (['draw', 'erase', 'fill', 'clear'].includes(data.type)) {
       broadcast(ws, data);
     }
   });
