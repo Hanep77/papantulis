@@ -265,16 +265,36 @@ html, body, #root {
 }
 
 /* ─── Drawing Canvas ─────────────────────────────────────────────────────── */
-.drawing-canvas {
+.canvas-container {
+  position: relative;
   flex: 1;
-  display: block;
   width: 100%;
   height: calc(100vh - var(--toolbar-h));
-  background:
-    radial-gradient(ellipse at 20% 20%, #1a1a2e 0%, transparent 60%),
-    radial-gradient(ellipse at 80% 80%, #16213e 0%, transparent 60%),
-    var(--bg);
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.drawing-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: #ffffff;
+  cursor: none;
   touch-action: none;
+}
+
+.drawing-canvas:active { cursor: none; }
+
+/* ─── Custom Brush Cursor ────────────────────────────────────────────────── */
+.brush-cursor {
+  position: absolute;
+  border: 1px solid #000;
+  border-radius: 50%;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  z-index: 50;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5);
+  transition: width 0.1s, height 0.1s;
 }
 
 /* ─── Responsive ─────────────────────────────────────────────────────────── */
@@ -290,5 +310,5 @@ html, body, #root {
   .control-label  { display: none; }
   .size-slider    { width: 72px; }
 
-  .drawing-canvas { height: calc(100vh - 100px); }
+  .canvas-container { height: calc(100vh - 100px); }
 }

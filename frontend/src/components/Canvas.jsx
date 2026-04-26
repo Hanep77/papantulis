@@ -2,6 +2,7 @@ import { useRef, useEffect, useCallback, useState } from 'react';
 
 const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:3001';
 const THROTTLE_MS = 16; // ~60fps cap on outgoing events
+const CANVAS_BG = '#ffffff';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -123,10 +124,12 @@ export default function Canvas() {
   const lastSentRef = useRef(0);
 
   const [tool, setTool] = useState('pen'); // pen, eraser, fill
-  const [color, setColor] = useState('#6c63ff');
+  const [color, setColor] = useState('#222222'); // default to black
   const [size, setSize] = useState(4);
   const [connected, setConnected] = useState(false);
   const [status, setStatus] = useState('connecting…');
+
+  const [cursorPos, setCursorPos] = useState(null);
 
   const toolRef = useRef(tool);
   const colorRef = useRef(color);
@@ -168,17 +171,13 @@ export default function Canvas() {
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
 
-        if (data.type === 'draw') {
-          ctx.globalCompositeOperation = 'source-over';
+        if (data.type === 'draw' || data.type === 'erase') {
           drawSegment(ctx, data);
-        } else if (data.type === 'erase') {
-          ctx.globalCompositeOperation = 'destination-out';
-          drawSegment(ctx, data);
-          ctx.globalCompositeOperation = 'source-over'; // restore
         } else if (data.type === 'fill') {
           floodFill(ctx, data.x, data.y, data.color);
         } else if (data.type === 'clear') {
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.fillStyle = CANVAS_BG;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
       };
     }
@@ -204,7 +203,10 @@ export default function Canvas() {
       canvas.width = canvas.offsetWidth;
       canvas.height = canvas.offsetHeight;
 
-      canvas.getContext('2d').drawImage(tmpCanvas, 0, 0);
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = CANVAS_BG;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(tmpCanvas, 0, 0);
     }
 
     resize();
@@ -248,13 +250,16 @@ export default function Canvas() {
 
     isDrawingRef.current = true;
     prevPosRef.current = pos;
+    setCursorPos(pos);
   }, [getPos, sendDraw]);
 
   const onPointerMove = useCallback((e) => {
+    const pos = getPos(e);
+    setCursorPos(pos); // Update visual cursor
+
     if (!isDrawingRef.current) return;
     e.preventDefault();
 
-    const pos = getPos(e);
     const { x: prevX, y: prevY } = prevPosRef.current;
     
     const isEraser = toolRef.current === 'eraser';
@@ -264,20 +269,15 @@ export default function Canvas() {
       y: pos.y,
       prevX,
       prevY,
-      color: colorRef.current,
+      // Erase simply paints with the white background color
+      color: isEraser ? CANVAS_BG : colorRef.current,
       size: sizeRef.current,
     };
 
     const ctx = canvasRef.current.getContext('2d');
-    if (isEraser) {
-      ctx.globalCompositeOperation = 'destination-out';
-      drawSegment(ctx, payload);
-      ctx.globalCompositeOperation = 'source-over';
-    } else {
-      drawSegment(ctx, payload);
-    }
-
+    drawSegment(ctx, payload);
     sendDraw(payload);
+    
     prevPosRef.current = pos;
   }, [getPos, sendDraw]);
 
@@ -287,7 +287,9 @@ export default function Canvas() {
 
   const clearCanvas = useCallback(() => {
     const canvas = canvasRef.current;
-    canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = CANVAS_BG;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
     sendDraw({ type: 'clear' }, true);
   }, [sendDraw]);
 
@@ -342,7 +344,7 @@ export default function Canvas() {
             <input
               type="range"
               min={1}
-              max={40}
+              max={80}
               value={size}
               onChange={(e) => setSize(Number(e.target.value))}
               className="size-slider"
@@ -350,7 +352,7 @@ export default function Canvas() {
           </label>
 
           <div className="color-presets">
-            {['#6c63ff', '#ff6584', '#43e97b', '#f7971e', '#fff', '#222'].map((c) => (
+            {['#222222', '#ff6584', '#43e97b', '#6c63ff', '#f7971e', '#ffffff'].map((c) => (
               <button
                 key={c}
                 className={`preset ${color === c ? 'preset--active' : ''}`}
@@ -372,17 +374,35 @@ export default function Canvas() {
         </div>
       </header>
 
-      <canvas
-        ref={canvasRef}
-        className="drawing-canvas"
-        onMouseDown={onPointerDown}
-        onMouseMove={onPointerMove}
-        onMouseUp={onPointerUp}
-        onMouseLeave={onPointerUp}
-        onTouchStart={onPointerDown}
-        onTouchMove={onPointerMove}
-        onTouchEnd={onPointerUp}
-      />
+      <div 
+        className="canvas-container"
+        onMouseLeave={() => setCursorPos(null)}
+      >
+        <canvas
+          ref={canvasRef}
+          className="drawing-canvas"
+          onMouseDown={onPointerDown}
+          onMouseMove={onPointerMove}
+          onMouseUp={onPointerUp}
+          onTouchStart={onPointerDown}
+          onTouchMove={onPointerMove}
+          onTouchEnd={onPointerUp}
+        />
+        
+        {/* Visual Brush Cursor Indicator */}
+        {cursorPos && (
+          <div 
+            className="brush-cursor"
+            style={{
+              left: cursorPos.x,
+              top: cursorPos.y,
+              width: size,
+              height: size,
+              display: tool === 'fill' ? 'none' : 'block' // hide custom cursor when bucket filling
+            }}
+          />
+        )}
+      </div>
     </div>
   );
 }
