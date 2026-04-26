@@ -1,0 +1,12 @@
+{
+  "name": "garlic",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Real-time collaborative drawing board",
+  "scripts": {
+    "dev:backend":  "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "start:backend":  "npm --prefix backend run start",
+    "start:frontend": "npm --prefix frontend run preview"
+  }
+}
